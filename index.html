@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>GreenBus • Bus Tickets Made Simple</title>
+    <meta name="description" content="GreenBus — simple bus ticket search, seat selection, and checkout in a single HTML file." />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='18' fill='%2316a34a'/%3E%3Cpath d='M24 36h52a6 6 0 0 1 6 6v22a10 10 0 0 1-10 10h-3v6a4 4 0 0 1-4 4h-6a4 4 0 0 1-4-4v-6H45v6a4 4 0 0 1-4 4h-6a4 4 0 0 1-4-4v-6h-3A10 10 0 0 1 18 64V42a6 6 0 0 1 6-6Z' fill='white'/%3E%3Ccircle cx='32' cy='68' r='6' fill='white'/%3E%3Ccircle cx='68' cy='68' r='6' fill='white'/%3E%3C/svg%3E" />
+    <style>
+        :root{
+          --bg:#0b1220; --card:#111a2b; --muted:#95a3b0; --text:#e6eef8; --brand:#16a34a; --brand-2:#22c55e; --danger:#ef4444; --warn:#f59e0b; --ok:#10b981;
+          --ring: 0 0 0 3px rgba(34,197,94,.25);
+        }
+        *{box-sizing:border-box}
+        html,body{height:100%}
+        body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:linear-gradient(180deg,#081226 0%, #0b1324 40%, #0e1629 70%, #0f172a 100%);color:var(--text)}
+        a{color:inherit;text-decoration:none}
+        .container{max-width:1100px;margin:0 auto;padding:24px}
+        header{position:sticky;top:0;backdrop-filter:saturate(1.2) blur(10px);background:rgba(11,19,36,.65);border-bottom:1px solid rgba(255,255,255,.06);z-index:20}
+        .row{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+        .space{flex:1}
+        .brand{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:.3px}
+        .brand .logo{width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,var(--brand),var(--brand-2));display:grid;place-items:center;color:white;font-size:18px}
+        nav a{opacity:.9;padding:10px 12px;border-radius:12px}
+        nav a.active, nav a:hover{background:rgba(255,255,255,.06)}
+
+        /* Hero */
+        .hero{display:grid;grid-template-columns:1.2fr .8fr;gap:28px;align-items:center;padding:40px 24px}
+        .hero h1{font-size:44px;line-height:1.1;margin:0 0 12px}
+        .hero p{color:var(--muted);margin:0 0 24px}
+        .card{background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:18px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+        .shadow{box-shadow:0 10px 30px rgba(0,0,0,.35)}
+
+        /* Forms */
+        .field{display:flex;flex-direction:column;gap:6px}
+        label{font-size:13px;color:var(--muted)}
+        input,select,button,textarea{font:inherit}
+        input,select,textarea{padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);color:var(--text);outline:none}
+        input:focus,select:focus,textarea:focus{box-shadow:var(--ring);border-color:rgba(34,197,94,.5)}
+        .grid{display:grid;gap:12px}
+        .grid.cols-2{grid-template-columns:repeat(2,1fr)}
+        .grid.cols-3{grid-template-columns:repeat(3,1fr)}
+        .actions{display:flex;gap:10px;flex-wrap:wrap}
+        .btn{display:inline-flex;align-items:center;gap:8px;padding:12px 16px;border-radius:14px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:var(--text);cursor:pointer}
+        .btn.primary{background:linear-gradient(135deg,var(--brand),var(--brand-2));border-color:transparent}
+        .btn.warn{background:linear-gradient(135deg,#f59e0b,#fbbf24);color:#1a1508;border-color:transparent}
+        .btn.ghost:hover{background:rgba(255,255,255,.06)}
+        .badge{font-size:12px;padding:4px 8px;border-radius:999px;background:rgba(34,197,94,.15);color:#a7f3d0;border:1px solid rgba(16,185,129,.25)}
+
+        /* Sections */
+        section{padding:20px 24px}
+        .hidden{display:none !important}
+
+        /* Results */
+        .result{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;padding:14px;border:1px solid rgba(255,255,255,.08);border-radius:16px;background:rgba(255,255,255,.03)}
+        .muted{color:var(--muted)}
+
+        /* Seat map */
+        .seatmap{display:grid;grid-template-columns:repeat(5,34px);gap:10px;justify-content:center;padding:12px;background:rgba(255,255,255,.04);border-radius:16px;border:1px solid rgba(255,255,255,.08)}
+        .seat{width:34px;height:34px;border-radius:8px;border:1px solid rgba(255,255,255,.12);display:grid;place-items:center;cursor:pointer}
+        .seat.available{background:rgba(34,197,94,.15)}
+        .seat.selected{background:linear-gradient(135deg,var(--brand),var(--brand-2));}
+        .seat.booked{background:rgba(239,68,68,.35);cursor:not-allowed}
+        .legend{display:flex;gap:12px;justify-content:center;font-size:13px;color:var(--muted)}
+        .legend .swatch{width:14px;height:14px;border-radius:4px;display:inline-block;vertical-align:middle;margin-right:6px}
+
+        /* Modal */
+        .modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;padding:20px;z-index:50}
+        .modal.open{display:flex}
+        .toast{position:fixed;right:16px;bottom:16px;background:#0d1b2a;border:1px solid rgba(255,255,255,.12);padding:12px 14px;border-radius:12px}
+
+        /* Tables */
+        table{width:100%;border-collapse:collapse}
+        th,td{padding:10px 12px;border-bottom:1px dashed rgba(255,255,255,.08);text-align:left}
+        th{color:var(--muted);font-weight:600}
+
+        /* Footer */
+        footer{border-top:1px solid rgba(255,255,255,.08);color:var(--muted);padding:24px;text-align:center}
+
+        @media (max-width: 860px){
+          .hero{grid-template-columns:1fr}
+          .grid.cols-3{grid-template-columns:1fr}
+          .grid.cols-2{grid-template-columns:1fr}
+        }
+    </style>
+</head>
+<body>
+<header>
+    <div class="container row">
+        <div class="brand"><span class="logo">G</span> <span>GreenBus</span><span class="badge">Demo</span></div>
+        <nav class="row">
+            <a href="#home" class="active" data-link>Home</a>
+            <a href="#results" data-link>Results</a>
+            <a href="#checkout" data-link>Checkout</a>
+            <a href="#bookings" data-link>My Bookings</a>
+            <a href="#about" data-link>About</a>
+        </nav>
+        <div class="space"></div>
+        <button class="btn ghost" id="clearData" title="Clear saved demo data">Reset</button>
+    </div>
+</header>
+
+<!-- Hero / Search -->
+<section id="home" class="container hero">
+    <div>
+        <h1>Find. Pick seats. Go. ✨</h1>
+        <p>Search intercity buses across India, choose your seats on an interactive map, and checkout — all within this single HTML file. (No backend required.)</p>
+        <div class="card">
+            <form id="searchForm" class="grid cols-3">
+                <div class="field">
+                    <label for="from">From</label>
+                    <input id="from" name="from" placeholder="e.g., Delhi" required />
+                </div>
+                <div class="field">
+                    <label for="to">To</label>
+                    <input id="to" name="to" placeholder="e.g., Jaipur" required />
+                </div>
+                <div class="field">
+                    <label for="date">Journey Date</label>
+                    <input id="date" name="date" type="date" required />
+                </div>
+                <div class="actions" style="grid-column:1 / -1; justify-content:flex-end;">
+                    <button class="btn" type="reset">Clear</button>
+                    <button class="btn primary" type="submit">Search Buses</button>
+                </div>
+            </form>
+        </div>
+        <p class="muted" style="margin-top:10px">Tip: This is a demo with mock data saved in your browser's localStorage.</p>
+    </div>
+    <div class="card shadow">
+        <h3 style="margin:6px 0 12px">Why GreenBus?</h3>
+        <ul>
+            <li>🚌 Clean seat selection with live availability (demo).</li>
+            <li>💳 Simple checkout with basic validation.</li>
+            <li>🧾 Booking history — stored locally.</li>
+            <li>🛠️ 100% front-end: a single, copy‑paste HTML file.</li>
+        </ul>
+        <hr style="border-color:rgba(255,255,255,.08)"/>
+        <h4 style="margin:8px 0 6px">Sample routes</h4>
+        <div class="actions">
+            <button class="btn" data-sample="Delhi|Jaipur">Delhi → Jaipur</button>
+            <button class="btn" data-sample="Mumbai|Pune">Mumbai → Pune</button>
+            <button class="btn" data-sample="Bengaluru|Chennai">Bengaluru → Chennai</button>
+        </div>
+    </div>
+</section>
+
+<!-- Results -->
+<section id="results" class="container hidden">
+    <h2 style="margin:0 0 10px">Available buses</h2>
+    <p class="muted" id="resultsInfo">—</p>
+    <div id="resultsList" class="grid" style="margin-top:16px; gap:14px"></div>
+</section>
+
+<!-- Checkout -->
+<section id="checkout" class="container hidden">
+    <h2 style="margin:0 0 10px">Checkout</h2>
+    <div class="grid cols-2">
+        <div class="card">
+            <h3 style="margin:6px 0 12px">Passenger details</h3>
+            <form id="passengerForm" class="grid cols-2">
+                <div class="field"><label>Name</label><input required id="pName" placeholder="Full name"/></div>
+                <div class="field"><label>Phone</label><input required id="pPhone" placeholder="10-digit" pattern="[0-9]{10}"/></div>
+                <div class="field"><label>Email</label><input required id="pEmail" type="email" placeholder="name@example.com"/></div>
+                <div class="field"><label>Gender</label>
+                    <select id="pGender" required>
+                        <option value="">Select</option>
+                        <option>Male</option>
+                        <option>Female</option>
+                        <option>Other</option>
+                    </select>
+                </div>
+                <div class="field" style="grid-column:1/-1"><label>Notes</label><textarea id="pNotes" rows="2" placeholder="(Optional) Special requests"></textarea></div>
+            </form>
+        </div>
+        <div class="card">
+            <h3 style="margin:6px 0 12px">Payment</h3>
+            <form id="paymentForm" class="grid cols-2">
+                <div class="field"><label>Card number</label><input required id="cardNum" inputmode="numeric" placeholder="4111 1111 1111 1111"/></div>
+                <div class="field"><label>Name on card</label><input required id="cardName" placeholder="As printed"/></div>
+                <div class="field"><label>Expiry</label><input required id="cardExp" placeholder="MM/YY" pattern="^(0[1-9]|1[0-2])\/(\d{2})$"/></div>
+                <div class="field"><label>CVV</label><input required id="cardCvv" inputmode="numeric" pattern="\d{3}" placeholder="123"/></div>
+            </form>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
+                <div>
+                    <div class="muted" id="fareBreakup">No items</div>
+                </div>
+                <button class="btn primary" id="payNow">Pay & Book</button>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Bookings -->
+<section id="bookings" class="container hidden">
+    <h2 style="margin:0 0 10px">My Bookings</h2>
+    <div class="card">
+        <table id="bookingsTable">
+            <thead>
+            <tr>
+                <th>PNR</th><th>Date</th><th>Route</th><th>Bus</th><th>Seats</th><th>Passenger</th><th>Amount</th><th>Status</th>
+            </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</section>
+
+<!-- About -->
+<section id="about" class="container hidden">
+    <div class="card">
+        <h3 style="margin:6px 0 12px">About this demo</h3>
+        <p>This is a fully client‑side GreenBus prototype designed for learning. You can adapt the UI to a Spring Boot backend later. The app stores mock data in <code>localStorage</code> and simulates a booking flow.</p>
+        <ul>
+            <li>Single HTML file — easy to copy/paste.</li>
+            <li>No frameworks, no build step.</li>
+            <li>Works offline after first load (basic, not a PWA).</li>
+        </ul>
+        <p class="muted">Made with ❤ for Java learners building travel portals.</p>
+    </div>
+</section>
+
+<!-- Seat Selection Modal -->
+<div class="modal" id="seatModal" role="dialog" aria-modal="true">
+    <div class="card" style="width:min(680px,96vw)">
+        <div class="row" style="justify-content:space-between;align-items:center">
+            <h3 style="margin:6px 0 6px">Pick your seats</h3>
+            <button class="btn ghost" id="closeSeat">Close</button>
+        </div>
+        <p class="muted" id="seatRoute">—</p>
+        <div class="grid cols-2">
+            <div>
+                <div class="legend" style="margin-bottom:8px">
+                    <span><span class="swatch" style="background:rgba(34,197,94,.15)"></span>Available</span>
+                    <span><span class="swatch" style="background:linear-gradient(135deg,var(--brand),var(--brand-2))"></span>Selected</span>
+                    <span><span class="swatch" style="background:rgba(239,68,68,.35)"></span>Booked</span>
+                </div>
+                <div id="seatMap" class="seatmap"></div>
+            </div>
+            <div>
+                <div class="card" style="background:rgba(255,255,255,.02)">
+                    <strong>Selected:</strong>
+                    <div id="selectedSeats">—</div>
+                    <div style="margin-top:10px"><strong>Total:</strong> ₹<span id="seatTotal">0</span></div>
+                    <div class="actions" style="margin-top:12px;justify-content:flex-end">
+                        <button class="btn" id="clearSeats">Clear</button>
+                        <button class="btn primary" id="proceedCheckout">Proceed to checkout</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="toast hidden" id="toast"></div>
+
+<footer>© <span id="year"></span> GreenBus Demo • Built with plain HTML, CSS & JS</footer>
+
+<script>
+    ;(()=>{
+      const $ = (q,root=document)=>root.querySelector(q);
+      const $$ = (q,root=document)=>Array.from(root.querySelectorAll(q));
+      const show = (id)=>{
+        $$('#home, #results, #checkout, #bookings, #about').forEach(el=>el.classList.add('hidden'));
+        $(id).classList.remove('hidden');
+        $$('nav a').forEach(a=>a.classList.toggle('active', a.getAttribute('href')===id));
+        location.hash = id;
+      };
+      const toast = (msg)=>{const t=$('#toast');t.textContent=msg;t.classList.remove('hidden');setTimeout(()=>t.classList.add('hidden'),2200)};
+
+      // Seed sample buses
+      const seedBuses = ()=>{
+        if(localStorage.getItem('gb_buses')) return;
+        const buses = [
+          {id:'GB101', operator:'GreenBus Express', type:'AC Sleeper', rating:4.6, seats:40, base:699},
+          {id:'GB202', operator:'Shine Travels', type:'Non-AC Seater', rating:4.1, seats:42, base:399},
+          {id:'GB303', operator:'CityLink', type:'AC Seater', rating:4.3, seats:36, base:549}
+        ];
+        localStorage.setItem('gb_buses', JSON.stringify(buses));
+      };
+
+      const fmtDate = (d)=> new Date(d).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
+      const fmtTime = (d)=> new Date(d).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+
+      const state = { search:null, results:[], selection:null, cart:null };
+
+      // Routing
+      window.addEventListener('hashchange', ()=>{
+        const id = location.hash || '#home';
+        show(id);
+        if(id==="#bookings") renderBookings();
+      });
+
+      // Header links
+      $$('a[data-link]').forEach(a=>a.addEventListener('click',e=>{
+        e.preventDefault();
+        show(a.getAttribute('href'));
+      }));
+
+      // Reset button
+      $('#clearData').addEventListener('click',()=>{
+        localStorage.clear(); seedBuses(); renderBookings(); toast('Demo data reset.');
+      });
+
+      // Samples
+      $$('[data-sample]').forEach(btn=>btn.addEventListener('click',()=>{
+        const [from,to] = btn.dataset.sample.split('|');
+        $('#from').value=from; $('#to').value=to;
+        const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate()+1);
+        $('#date').value = tomorrow.toISOString().slice(0,10);
+        $('#searchForm').dispatchEvent(new Event('submit',{cancelable:true}));
+        show('#results');
+      }));
+
+      // Search
+      $('#searchForm').addEventListener('submit', (e)=>{
+        e.preventDefault();
+        const from = $('#from').value.trim();
+        const to = $('#to').value.trim();
+        const date = $('#date').value;
+        if(!from||!to||!date){ toast('Fill all fields'); return; }
+        state.search = {from,to,date};
+        performSearch();
+      });
+
+      const performSearch = ()=>{
+        const buses = JSON.parse(localStorage.getItem('gb_buses')||'[]');
+        // Create mock results with dynamic times/prices
+        const baseStart = new Date(state.search.date+'T18:00:00');
+        state.results = buses.map((b,idx)=>{
+          const depart = new Date(baseStart.getTime()+idx*60*60*1000);
+          const arrive = new Date(depart.getTime()+ (4+idx)*60*60*1000);
+          const price = b.base + Math.floor(Math.random()*120);
+          return {...b, from:state.search.from, to:state.search.to, date:state.search.date, depart, arrive, price};
+        });
+        renderResults();
+        show('#results');
+      };
+
+      const resultsList = $('#resultsList');
+      const resultsInfo = $('#resultsInfo');
+
+      const renderResults = ()=>{
+        if(!state.results.length){ resultsList.innerHTML=''; resultsInfo.textContent='No results.'; return; }
+        resultsInfo.textContent = `${state.search.from} → ${state.search.to} • ${fmtDate(state.search.date)} · ${state.results.length} buses`;
+        resultsList.innerHTML = '';
+        state.results.forEach((r,i)=>{
+          const el = document.createElement('div');
+          el.className = 'result';
+          el.innerHTML = `
+            <div>
+              <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+                <strong>${r.operator}</strong>
+                <span class="badge">${r.type}</span>
+                <span class="muted">★ ${r.rating.toFixed(1)}</span>
+              </div>
+              <div class="muted" style="margin-top:4px">${fmtTime(r.depart)} → ${fmtTime(r.arrive)} · ${r.from} → ${r.to}</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:14px">
+              <div><div style="font-size:18px">₹${r.price}</div><div class="muted" style="font-size:12px">per seat</div></div>
+              <button class="btn primary" data-seat="${i}">Select seats</button>
+            </div>
+          `;
+          resultsList.appendChild(el);
+        });
+
+        $$('[data-seat]').forEach(btn=>btn.addEventListener('click',()=>{
+          const idx = +btn.dataset.seat; openSeatModal(state.results[idx]);
+        }));
+      };
+
+      // Seat modal
+      const seatModal = $('#seatModal');
+      $('#closeSeat').addEventListener('click',()=>seatModal.classList.remove('open'));
+      $('#clearSeats').addEventListener('click',()=>{ state.selection.seats=[]; renderSeatSide(); renderSeatMap(); });
+      $('#proceedCheckout').addEventListener('click',()=>{
+        if(!state.selection || !state.selection.seats?.length) return toast('Select at least 1 seat');
+        state.cart = { ...state.selection };
+        updateFare();
+        seatModal.classList.remove('open');
+        show('#checkout');
+      });
+
+      const openSeatModal = (result)=>{
+        state.selection = { ...result, seats:[] };
+        $('#seatRoute').textContent = `${result.operator} • ${result.from} → ${result.to} • ${fmtDate(result.date)}`;
+        seatModal.classList.add('open');
+        renderSeatMap();
+        renderSeatSide();
+      };
+
+      const renderSeatSide = ()=>{
+        const list = state.selection.seats.length ? state.selection.seats.join(', ') : '—';
+        $('#selectedSeats').textContent = list;
+        $('#seatTotal').textContent = state.selection.seats.length * state.selection.price;
+      };
+
+      const seatMapEl = $('#seatMap');
+      const renderSeatMap = ()=>{
+        seatMapEl.innerHTML='';
+        // Generate 40 seats, mark some random as booked
+        const booked = new Set(JSON.parse(localStorage.getItem('gb_booked_'+state.selection.id+'_'+state.selection.date) || '[]'));
+        for(let i=1;i<=40;i++){
+          const id = i.toString().padStart(2,'0');
+          const div = document.createElement('div');
+          div.className = 'seat ' + (booked.has(id)?'booked':'available');
+          div.textContent = id;
+          if(!booked.has(id)){
+            if(state.selection.seats.includes(id)) div.classList.add('selected');
+            div.addEventListener('click',()=>{
+              if(div.classList.contains('selected')){
+                state.selection.seats = state.selection.seats.filter(s=>s!==id);
+                div.classList.remove('selected');
+              } else {
+                state.selection.seats.push(id); div.classList.add('selected');
+              }
+              renderSeatSide();
+            });
+          }
+          seatMapEl.appendChild(div);
+          if(i%5===0){
+            const gap=document.createElement('div'); gap.style.height='10px'; gap.style.gridColumn='1/-1'; seatMapEl.appendChild(gap);
+          }
+        }
+      };
+
+      // Fare & Pay
+      const updateFare = ()=>{
+        if(!state.cart){ $('#fareBreakup').textContent='No items'; return; }
+        const base = state.cart.seats.length * state.cart.price;
+        const gst = Math.round(base * 0.05);
+        const fees = 25;
+        const total = base + gst + fees;
+        state.cart.amount = total;
+        $('#fareBreakup').textContent = `Base ₹${base} + GST ₹${gst} + Fees ₹${fees} = Total ₹${total}`;
+      };
+
+      $('#payNow').addEventListener('click',()=>{
+        if(!state.cart) return toast('No items to pay for');
+        // Very light validation
+        const name = $('#pName').value.trim();
+        const phone = $('#pPhone').value.trim();
+        const email = $('#pEmail').value.trim();
+        const gender = $('#pGender').value;
+        const card = $('#cardNum').value.replace(/\s+/g,'');
+        const exp = $('#cardExp').value.trim();
+        const cvv = $('#cardCvv').value.trim();
+        if(!name||!phone||!email||!gender||card.length<12||!/^(0[1-9]|1[0-2])\/(\d{2})$/.test(exp)||!/^\d{3}$/.test(cvv)){
+          toast('Please fill passenger and payment details correctly');
+          return;
+        }
+        // Save booking
+        const pnr = 'GB' + Math.random().toString(36).slice(2,8).toUpperCase();
+        const booking = { pnr, when: new Date().toISOString(), ...state.cart, passenger:{name,phone,email,gender} };
+        const bookings = JSON.parse(localStorage.getItem('gb_bookings')||'[]');
+        bookings.unshift(booking);
+        localStorage.setItem('gb_bookings', JSON.stringify(bookings));
+        // Persist booked seats for that bus/date
+        const key = 'gb_booked_'+state.cart.id+'_'+state.cart.date;
+        const already = new Set(JSON.parse(localStorage.getItem(key)||'[]'));
+        state.cart.seats.forEach(s=>already.add(s));
+        localStorage.setItem(key, JSON.stringify(Array.from(already)));
+
+        toast('Payment successful. Ticket booked!');
+        renderBookings();
+        show('#bookings');
+      });
+
+      const renderBookings = ()=>{
+        const tbody = $('#bookingsTable tbody');
+        tbody.innerHTML='';
+        const list = JSON.parse(localStorage.getItem('gb_bookings')||'[]');
+        if(!list.length){ tbody.innerHTML = `<tr><td colspan="8" class="muted">No bookings yet.</td></tr>`; return; }
+        list.forEach(b=>{
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td><code>${b.pnr}</code></td>
+            <td>${fmtDate(b.date)}<br><span class="muted" style="font-size:12px">Booked ${fmtDate(b.when)}</span></td>
+            <td>${b.from} → ${b.to}</td>
+            <td>${b.operator}</td>
+            <td>${b.seats.join(', ')}</td>
+            <td>${b.passenger.name}</td>
+            <td>₹${b.amount}</td>
+            <td><span class="badge">CONFIRMED</span></td>
+          `;
+          tbody.appendChild(tr);
+        });
+      };
+
+      // Init
+      seedBuses();
+      $('#year').textContent = new Date().getFullYear();
+      if(location.hash){ show(location.hash); if(location.hash==="#bookings") renderBookings(); }
+    })();
+</script>
+</body>
+</html>
